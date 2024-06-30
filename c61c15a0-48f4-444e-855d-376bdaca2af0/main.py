@@ -1,49 +1,54 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import EMA, SMA
+from surmount.technical_indicators import SMA, BB
 from surmount.logging import log
 
 class TradingStrategy(Strategy):
     def __init__(self):
-        # Define a list of well-established stocks to monitor
-        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "FB"]
+        # The ticker symbol for the asset you're trading
+        self.ticker = "AAPL"
 
     @property
     def assets(self):
-        return self.tickers
+        # Define the assets this strategy will operate on
+        return [self.ticker]
 
     @property
     def interval(self):
+        # Defines the interval for the market data; adjust based on your strategy needs
         return "1day"
 
     def run(self, data):
-        allocation_dict = {}
-        for ticker in self.tickers:
-            # Use 50-day and 200-day Simple Moving Averages as support and resistance indicators
-            short_term_sma = SMA(ticker, data["ohlcv"], 50)
-            long_term_sma = SMA(ticker, data["ohlcv"], 200)
+        # This method implements the trading logic for support/resistance levels
 
-            if not short_term_sma or not long_term_sma:
-                log(f"Insufficient data for SMA calculations on {ticker}")
-                continue
+        # Initialize allocation for the asset
+        allocation = {self.ticker: 0}
 
-            current_price = data["ohlcv"][-1][ticker]['close']
+        # Fetch the ohlcv (open-high-low-close-volume) data for the ticker
+        ohlcv = data["ohlcv"]
 
-            # If the current price is closer to the long-term SMA (potential support), consider buying
-            # Else, if it's closer to the short-term SMA (potential resistance), consider reducing the position
-            if current_price[-1] < short_term_sma[-1] and current_func[-1] > long_term_sma[-1]:
-                # Price is between short and long term SMA, considered a potential 'buy zone'
-                allocation_dict[ticker] = 0.2  # Allocate a portion of the portfolio to this stock
-            elif current_price > short_term_sma[-1]:
-                # Price is above short term SMA, potentially nearing resistance, reduce position
-                allocation_dict[ticker] = 0.1  # Lighter allocation
-            else:
-                # Otherwise, hold a nominal position or exit
-                allocation_dict[ticker] = 0.05
+        # Ensure there's enough data to compute technical indicators
+        if len(ohlcv) < 20:  # Example threshold; adjust based on your indicators
+            return TargetAllocation(allocation)
 
-        # Normalize the allocation to ensure the sum of allocations does not exceed 1
-        if allocation_dict:
-            total_allocation = sum(allocation_dict.values())
-            for ticker in allocation_dict:
-                allocation_dict[ticker] /= total_allocation
+        # Calculate Bollinger Bands as potential resistance (upper band) and support (lower band) indicators
+        bollinger_bands = BB(self.ticker, ohlcv, 20, 2)  # using a 20-day window & 2 standard deviations
+        
+        # Access the latest price data
+        latest_close = ohlcv[-1][self.ticker]['close']
 
-        return Target&Allocation(allocation_dict)
+        # Strategy Logic:
+        # If the price is near the lower Bollinger Band, consider it as near support level and buy
+        if latest_close <= bollinger_bands['lower'][-1]:
+            log("The price is near the support level; considering buying.")
+            allocation[self.ticker] = 1  # Allocating 100% to this asset as a buy signal
+
+        # If the price is near the upper Bollinger Band, consider it as near resistance level and sell
+        elif latest_i_close >= bollinger_bands['upper'][-1]:
+            log("The price is near the resistance level; considering selling.")
+            allocation[self.ticker] = 0  # Setting allocation to 0% as a sell signal
+
+        # If the price is between the bands, no clear signal, maintain previous positions or stay neutral
+        else:
+            log("The price is between support and resistance levels; doing nothing.")
+
+        return TargetAllocation(allocation)

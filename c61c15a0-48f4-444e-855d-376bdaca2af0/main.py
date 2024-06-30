@@ -1,55 +1,49 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import SMA
+from surmount.technical_indicators import SMA, BB
 from surmount.logging import log
 
 class TradingStrategy(Strategy):
     def __init__(self):
-        # Define a list of stock tickers to trade on
-        self.tickers = ["AAPL", "MSFT", "TSLA", "GOOGL", "AMZN"]
-        # Define the window size for resistance calculation
-        self.window_size = 10
-
+        # Choose assets for trading
+        self.tickers = ["SPY", "QQQ"]
+        
     @property
     def interval(self):
-        # Set the strategy to operate on an intraday frequency, adjust as needed
-        return "5min"
-
+        # Set the data fetch interval to daily
+        return "1day"
+    
     @property
     def assets(self):
-        # Return the list of tickers this strategy will operate on
+        # List of assets this strategy trades
         return self.tickers
+
+    @property
+    def data(self):
+        # Data required by the strategy
+        return []
 
     def run(self, data):
         allocation_dict = {}
         for ticker in self.tickers:
-            if not data.get("ohlcv"):
-                # Skip if there's no data available
-                continue
-
-            # Fetch high prices for the ticker from the data
-            highs = [x[ticker]["high"] for x in data["ohlcv"]]
-            # Ensure there's enough data to apply the strategy
-            if len(highs) < self.window_size:
-                continue
-            
-            # Calculate current resistance level as the highest price in the defined window
-            resistance = max(highs[-self.window_size:])
-
-            # Get the last closing price for the ticker
-            last_close_price = data["ohlcv"][-1][ticker]["close"]
-
-            # Compare the last closing price to the resistance level
-            if last_close_price > resistance:
-                # If the price has broken through the resistance, allocate a portion of the portfolio to this stock
-                allocation_dict[ticker] = 0.2  # Allocate 20%, customize as needed
+            # Calculate the Bollinger Bands for each asset
+            bollinger_bands = BB(ticker, data["ohlcv"], 20)
+            if bollinger_bands is not None:
+                current_price = data["ohlcv"][-1][ticker]['close']
+                # Check if the current price is touching the upper band (resistance)
+                if current_price >= bollinger_bands['upper'][-1]:
+                    # If touching resistance, prepare to short sell, here we just sell
+                    allocation_dict[ticker] = 0  # 0 allocation represents a sell signal
+                elif current_price <= bollinger_bands['lower'][-1]:
+                    # If touching lower band (support), buy or increase position
+                    allocation_dict[ticker] = 1 / len(self.tickers)  # Equally divided allocation among tickers
+                else:
+                    # If within bands, do nothing
+                    allocation_dict[ticker] = allocation_dict.get(ticker, 0)
             else:
-                # If the price is below the resistance, do not allocate (or exit the position)
-                allocation_dict[ticker] = 0
-
-        # Optimize allocation (ensure total allocation does not exceed 100%)
-        total_allocation = sum(allocation_dict.values())
-        if total_allocation > 1:
-            # Normalize allocations if total exceeds 100%
-            allocation_dict = {k: v / total_allocation for k, v in allocation_dict.items()}
-
-        return TargetURRENCYAllocation(allocation_dict)
+                # If Bollinger Bands can't be calculated, do nothing
+                allocation_dict[ticker] = allocation_dict.get(ticker, 0)
+        
+        # Log the allocation decision
+        log("Allocations: " + str(allocation_dict))
+        
+        return TargetAllocation(allocation_dict)

@@ -1,72 +1,49 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.data import Asset
-from surmount.technical_indicators import SMA, ATR
-import matplotlib.pyplot as plt
+from surmount.technical_indicators import SMA, MAX
+from surmount.logging import log
 
-class ResistanceStrategy(Strategy):
-    def __init__(self, asset: Asset, window: int = 14, atr_multiplier: float = 2):
-        super().__init__()
-        self.asset = asset
-        self.window = window
-        self.atr_multiplier = atr_multiplier
-        self.sma = SMA(asset, window)
-        self.atr = ATR(asset, window)
-        self.positions = []
+class TradingStrategy(Strategy):
+    def __init__(self):
+        # Define the tickers for the five different stocks
+        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
+        # Determine the lookback period for calculating resistance
+        self.lookback_period = 14
+    
+    @property
+    def interval(self):
+        # Day trading strategy, so '1day' interval for data
+        return "5min"
 
-    def identify_resistance(self):
-        data = self.asset.get_data()
-        resistance_levels = []
-        for i in range(self.window, len(data)):
-            high = data['High'][i-self.window:i+1].max()
-            if data['Close'][i] >= high:
-                resistance_levels.append((data.index[i], high))
-        return resistance_levels
-
-    def execute_strategy(self):
-        data = self.asset.get_data()
-        resistance_levels = self.identify_resistance()
-
-        buy_price = None
-        sell_price = None
-
-        for i in range(len(data)):
-            if buy_price is None:
-                buy_price = data['Close'][i]
-
-            for level in resistance_levels:
-                if data.index[i] >= level[0] and data['Close'][i] >= level[1]:
-                    sell_price = data['Close'][i]
-                    self.positions.append((buy_price, sell_price))
-                    buy_price = None
-                    break
-
-    def plot_results(self):
-        data = self.asset.get_data()
-        resistance_levels = self.identify_resistance()
-
-        plt.figure(figsize=(14, 7))
-        plt.plot(data['Close'], label='Close Price')
-
-        for level in resistance_levels:
-            plt.axhline(y=level[1], color='r', linestyle='--', lw=0.5)
-            plt.text(level[0], level[1], 'Resistance', color='r')
-
-        plt.title(f'{self.asset.symbol} Stock Price and Resistance Levels')
-        plt.xlabel('Date')
-        plt.ylabel('Price')
-        plt.legend()
-        plt.show()
-
-    def print_positions(self):
-        for position in self.positions:
-            print(f'Bought at: {position[0]}, Sold at: {position[1]}')
-
-
-asset = Asset('AAPL', '2023-01-01', '2023-12-31')
-strategy = ResistanceStrategy(asset)
-strategy.execute_strategy()
-strategy.plot_results()
-strategy.print_positions()
-
-
-This example provides a basic framework and can be expanded with more sophisticated logic and risk management techniques.
+    @property
+    def assets(self):
+        # Return the list of stock tickers to be traded
+        return self.tickers
+        
+    def run(self, data):
+        allocation_dict = {}
+        
+        # Iterate through each stock to determine its target allocation
+        for ticker in self.tickers:
+            # Get historical closing prices
+            closing_prices = [d[ticker]["close"] for d in data["ohlcv"]]
+            
+            # Calculate the maximum close price over the lookback period
+            resistance_level = MAX(ticker, data["ohlcv"], self.lookback_period)
+            
+            # Current price for decision-making
+            current_price = closing_prices[-1] if len(closing_data) > 0 else None
+            
+            # Simple strategy to buy if the current price is close to the resistance level
+            # and assuming the resistance level might act as a support
+            if current_price and resistance_level and current_price >= resistance_level * 0.98:
+                # Assign equal weight if the condition meets, here assuming a simplistic equal distribution
+                allocation_dict[ticker] = 1.0/len(self.tickers)
+            else:
+                # Do not allocate to stocks not meeting the criteria
+                allocation_dict[ticker] = 0
+        
+        # Log the allocation decision
+        log(f"Allocation: {allocation_dict}")
+        
+        # Return the target allocation based on the logic above
+        return TargetAllocation(allocation_dict)

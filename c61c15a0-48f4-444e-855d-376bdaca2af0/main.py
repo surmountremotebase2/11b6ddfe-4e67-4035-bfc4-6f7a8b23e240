@@ -30,7 +30,7 @@ class TradingStrategy(Strategy):
 
             # If the current price is closer to the long-term SMA (potential support), consider buying
             # Else, if it's closer to the short-term SMA (potential resistance), consider reducing the position
-            if current_func[-1] < short_term_sma[-1] and current_func[-1] > long_term_sma[-1]:
+            if current_price[-1] < short_term_sma[-1] and current_func[-1] > long_term_sma[-1]:
                 # Price is between short and long term SMA, considered a potential 'buy zone'
                 allocation_dict[ticker] = 0.2  # Allocate a portion of the portfolio to this stock
             elif current_price > short_term_sma[-1]:

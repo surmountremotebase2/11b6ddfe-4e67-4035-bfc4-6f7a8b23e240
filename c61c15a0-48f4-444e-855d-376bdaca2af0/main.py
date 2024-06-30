@@ -5,7 +5,7 @@ from surmount.technical_indicators import SMA, EMA, STDEV, ATR
 class TradingStrategy(Strategy):
     def __init__(self):
         # Define the stocks to trade.
-        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "FB"]
+        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN"]
         # Define leverage for scalping trades.
         self.leverage = 2
 

@@ -5,7 +5,7 @@ from surmount.logging import log
 class TradingStrategy(Strategy):
     def __init__(self):
         # The ticker symbol for the asset you're trading
-        self.ticker = "GOOG"
+        self.ticker = "AAPL"
 
     @property
     def assets(self):

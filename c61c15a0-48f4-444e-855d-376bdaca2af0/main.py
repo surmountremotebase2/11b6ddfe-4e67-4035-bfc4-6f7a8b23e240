@@ -15,7 +15,7 @@ class TradingStrategy(Strategy):
     @property
     def interval(self):
         # Defines the interval for the market data; adjust based on your strategy needs
-        return "1min"
+        return "5min"
 
     def run(self, data):
         # This method implements the trading logic for support/resistance levels

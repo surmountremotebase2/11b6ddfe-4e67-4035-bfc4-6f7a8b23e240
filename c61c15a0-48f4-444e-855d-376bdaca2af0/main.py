@@ -5,7 +5,7 @@ from surmount.logging import log
 class TradingStrategy(Strategy):
     def __init__(self):
         # Choose assets for trading
-        self.tickers = ["AAPL", "MSFT"]
+        self.tickers = ["AMZN", "MSFT","TSLA","GOOG","META"]
         
     @property
     def interval(self):

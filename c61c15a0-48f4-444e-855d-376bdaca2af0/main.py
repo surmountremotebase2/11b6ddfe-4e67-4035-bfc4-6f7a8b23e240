@@ -1,45 +1,54 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import RSI, MACD
+from surmount.technical_indicators import SMA, BB
 from surmount.logging import log
 
 class TradingStrategy(Strategy):
     def __init__(self):
-        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "FB", "TSLA", "NFLX", "NVDA", "BABA", "AMD"]
-        # RSI Thresholds
-        self.rsi_overbought = 70
-        self.rsi_oversold = 30
-        # MACD configuration
-        self.macd_fast = 12
-        self.macd_slow = 26
-
-    @property
-    def interval(self):
-        return "5min"
+        # The ticker symbol for the asset you're trading
+        self.ticker = "AAPL"
 
     @property
     def assets(self):
-        return self.tickers
+        # Define the assets this strategy will operate on
+        return [self.ticker]
+
+    @property
+    def interval(self):
+        # Defines the interval for the market data; adjust based on your strategy needs
+        return "5min"
 
     def run(self, data):
-        allocation_dict = {}
-        for ticker in self.tickers:
-            rsi_value = RSI(ticker, data["ohlcv"], 14)[-1]  # Last RSI value
-            macd = MACD(ticker, data["ohlcv"], self.macd_fast, self.macd_slow)
-            macd_line = macd["MACD"][-1]
-            signal_line = macd["signal"][-1]
-            
-            # Determine conditions for buying or selling
-            if rsi_value > self.rsi_overbought and macd_line < signal_line:
-                # Overbought conditions and MACD crossover - potential sell signal
-                allocation_dict[ticker] = -0.1  # Example arbitrary short allocation, adjust based on your risk management
-            elif rsi_value < self.rsi_oversold and macd_line > signal_line:
-                # Oversold conditions and MACD crossover - potential buy signal
-                allocation_dict[ticker] = 0.1  # Example arbitrary long allocation, adjust based on your risk management
-            else:
-                # Neutral, no position
-                allocation_dict[ticker] = 0
+        # This method implements the trading logic for support/resistance levels
+
+        # Initialize allocation for the asset
+        allocation = {self.ticker: 0}
+
+        # Fetch the ohlcv (open-high-low-close-volume) data for the ticker
+        ohlcv = data["ohlcv"]
+
+        # Ensure there's enough data to compute technical indicators
+        if len(ohlcv) < 20:  # Example threshold; adjust based on your indicators
+            return TargetAllocation(allocation)
+
+        # Calculate Bollinger Bands as potential resistance (upper band) and support (lower band) indicators
+        bollinger_bands = BB(self.ticker, ohlcv, 20, 2)  # using a 20-day window & 2 standard deviations
         
-        # Normalize allocations if necessary to ensure they do not sum over 1 or below -1 if leveraging shorts
-        # This is a simplified approach and should be refined based on your risk and capital management strategies
-        
-        return TargetAllocation(allocation_dict)
+        # Access the latest price data
+        latest_close = ohlcv[-1][self.ticker]['close']
+
+        # Strategy Logic:
+        # If the price is near the lower Bollinger Band, consider it as near support level and buy
+        if latest_close <= bollinger_bands['lower'][-1]:
+            log("The price is near the support level; considering buying.")
+            allocation[self.ticker] = 1  # Allocating 100% to this asset as a buy signal
+
+        # If the price is near the upper Bollinger Band, consider it as near resistance level and sell
+        elif latest_i_close >= bollinger_bands['upper'][-1]:
+            log("The price is near the resistance level; considering selling.")
+            allocation[self.ticker] = 0  # Setting allocation to 0% as a sell signal
+
+        # If the price is between the bands, no clear signal, maintain previous positions or stay neutral
+        else:
+            log("The price is between support and resistance levels; doing nothing.")
+
+        return TargetAllocation(allocation)

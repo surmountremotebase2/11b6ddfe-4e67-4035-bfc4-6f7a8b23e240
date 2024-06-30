@@ -43,7 +43,7 @@ class TradingStrategy(Strategy):
             allocation[self.ticker] = 1  # Allocating 100% to this asset as a buy signal
 
         # If the price is near the upper Bollinger Band, consider it as near resistance level and sell
-        elif latest_i_close >= bollinger_bands['upper'][-1]:
+        elif latest_close >= bollinger_bands['upper'][-1]:
             log("The price is near the resistance level; considering selling.")
             allocation[self.ticker] = 0  # Setting allocation to 0% as a sell signal
 

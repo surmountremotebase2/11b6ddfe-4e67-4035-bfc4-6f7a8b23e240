@@ -12,7 +12,7 @@ class TradingStrategy(Strategy):
     @property
     def interval(self):
         # Day trading strategy, so '1day' interval for data
-        return "1day"
+        return "5min"
 
     @property
     def assets(self):

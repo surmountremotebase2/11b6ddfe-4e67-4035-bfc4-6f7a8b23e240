@@ -10,7 +10,7 @@ class TradingStrategy(Strategy):
     @property
     def interval(self):
         # Set the data fetch interval to daily
-        return "1day"
+        return "5 min"
     
     @property
     def assets(self):

@@ -6,7 +6,7 @@ import numpy as np
 class TradingStrategy(Strategy):
     def __init__(self):
         # Define pair of tickers for statistical arbitrage
-        
+        self.tickers = ["GC Z 17"]
         
         # Set the lookback period for mean and standard deviation calculation
         self.lookback_short = 20  # Shorter time frame

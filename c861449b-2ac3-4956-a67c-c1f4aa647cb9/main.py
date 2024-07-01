@@ -25,3 +25,4 @@ class TradingStrategy(Strategy):
     def run(self, data):
         log(str(InsiderTrading("AAPL")))
         #log(' '.join(Ins))
+        return 4

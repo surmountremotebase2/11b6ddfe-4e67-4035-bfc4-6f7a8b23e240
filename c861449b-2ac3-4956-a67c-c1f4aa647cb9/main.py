@@ -23,4 +23,5 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
-        log(' '.join(self.data_list))
+        log(str(type(self.data_list)))
+        #log(' '.join(self.data_list))

@@ -23,4 +23,6 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
-        log(str(data['ohlcv'][0]))
+        data_n = data['ohlcv'][0]
+        for x in data_n
+            log(x)

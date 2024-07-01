@@ -24,6 +24,7 @@ class TradingStrategy(Strategy):
 
     def run(self, data):
         log(str(data.keys()))
+        log(str(data["holdings"]))
         data_n = data['ohlcv'][0]
         log(str(data_n['SPY']['open']))
         #for x in data_n:

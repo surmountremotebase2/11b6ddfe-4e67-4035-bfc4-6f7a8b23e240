@@ -12,7 +12,7 @@ class TradingStrategy(Strategy):
 
     @property
     def interval(self):
-        return "4hour"
+        return "1day"
 
     @property
     def assets(self):
@@ -23,4 +23,4 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
-        print(data)
+        log("bonjour")

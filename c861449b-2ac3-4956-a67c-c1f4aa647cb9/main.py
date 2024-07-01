@@ -24,6 +24,6 @@ class TradingStrategy(Strategy):
 
     def run(self, data):
         data_n = data['ohlcv'][0]
-        log(str(type(data_n)))
+        log(str((data_n['SPY']))
         #for x in data_n:
             #log(x)

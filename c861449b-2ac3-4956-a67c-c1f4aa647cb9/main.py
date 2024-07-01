@@ -24,5 +24,5 @@ class TradingStrategy(Strategy):
 
     def run(self, data):
         data_n = data['ohlcv'][0]
-        for x in data_n
+        for x in data_n:
             log(x)

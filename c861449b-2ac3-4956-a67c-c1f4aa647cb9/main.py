@@ -23,4 +23,4 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
-        log(str(data['ohlcv']))
+        log(str(data['ohlcv'][0]))

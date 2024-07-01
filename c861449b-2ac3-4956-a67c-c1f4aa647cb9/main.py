@@ -26,7 +26,7 @@ class TradingStrategy(Strategy):
         allocation_dict = {i: 1/len(self.tickers) for i in self.tickers}
         for i in self.data_list:
             if tuple(i)[0]=="insider_trading":
-                log(str(((i)[0]))
+                log(str((i)[0]))
                 if data[tuple(i)] and len(data[tuple(i)])>0:
                     if "Sale" in data[tuple(i)][-1]['transactionType']:
                         allocation_dict[tuple(i)[1]] = 0

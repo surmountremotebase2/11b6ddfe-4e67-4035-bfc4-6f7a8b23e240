@@ -23,6 +23,7 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
+        print(i)
         allocation_dict = {i: 1/len(self.tickers) for i in self.tickers}
         for i in self.data_list:
             if tuple(i)[0]=="insider_trading":

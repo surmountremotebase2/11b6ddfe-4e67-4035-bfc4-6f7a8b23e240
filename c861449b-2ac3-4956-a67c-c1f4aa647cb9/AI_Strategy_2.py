@@ -6,7 +6,7 @@ from surmount.data import Asset, OHLCV
 class TradingStrategy(Strategy):
     def __init__(self):
         # Define the futures to trade
-        self.futures = ["ES1", "NQ1", "CL1", "GC1", "SI1", "EUR1", "GBP1", "JPY1", "AUD1", "CAD1"]
+        self.futures = ["ES1", "NQ1"]
         # Generate OHLCV data requests for each future
         self.data_list = [OHLCV(future) for future in self.futures]
 

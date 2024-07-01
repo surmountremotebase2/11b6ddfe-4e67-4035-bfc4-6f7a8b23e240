@@ -6,7 +6,7 @@ from surmount.data import Asset, InstitutionalOwnership, InsiderTrading
 class TradingStrategy(Strategy):
 
     def __init__(self):
-        self.tickers = ["SPY", "QQQ", "AAPL", "GOOGL"]
+        self.tickers = ["SPY"]
         self.data_list = [InstitutionalOwnership(i) for i in self.tickers]
         self.data_list += [InsiderTrading(i) for i in self.tickers]
 
@@ -23,6 +23,7 @@ class TradingStrategy(Strategy):
         return self.data_list
 
     def run(self, data):
+        log(str(data.keys()))
         data_n = data['ohlcv'][0]
         log(str(data_n['SPY']['open']))
         #for x in data_n:

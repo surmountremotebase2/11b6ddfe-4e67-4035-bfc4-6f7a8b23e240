@@ -28,6 +28,6 @@ class TradingStrategy(Strategy):
             if tuple(i)[0]=="insider_trading":
                 if data[tuple(i)] and len(data[tuple(i)])>0:
                 if "Sale" in data[tuple(i)][-1]['transactionType']:
-                    allocation_dict[tuple(i)[1]] = 0
+                allocation_dict[tuple(i)[1]] = 0
 
         return TargetAllocation(allocation_dict)

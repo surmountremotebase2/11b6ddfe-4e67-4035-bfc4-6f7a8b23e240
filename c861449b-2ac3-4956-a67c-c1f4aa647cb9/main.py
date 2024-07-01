@@ -1,49 +1,59 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import SMA
+from surmount.technical_indicators import RSI, EMA, SMA, MACD, MFI, BB
 from surmount.logging import log
-from surmount.data import Asset, OHLCV
+from surmount.data import Asset, InstitutionalOwnership, InsiderTrading
 
 class TradingStrategy(Strategy):
+
     def __init__(self):
-        # Define the futures to trade
-        self.futures = ["ES1", "NQ1"]
-        # Generate OHLCV data requests for each future
-        self.data_list = [OHLCV(future) for future in self.futures]
+        self.tickers = ["SPY", "QQQ", "AAPL", "GOOGL"]
+        self.data_list = [InstitutionalOwnership(i) for i in self.tickers]
+        self.data_list += [InsiderTrading(i) for i in self.tickers]
 
     @property
     def interval(self):
-        # Set the data interval
         return "1day"
 
     @property
     def assets(self):
-        # Return the list of futures to trade
-        return self.futures
+        return self.tickers
 
     @property
     def data(self):
-        # Return the list of data required for the strategy
         return self.data_list
 
     def run(self, data):
-        allocation_dict = {}
-        for future in self.futures:
-            # Ensure we have enough data points for our calculation
-            if len(data["ohlcv"][future]) < 50:  # Assuming we need at least 50 days for the long SMA
-                log(f"Not enough data for {future}")
-                continue
+        allocation_dict = {i: 1/len(self.tickers) for i in self.tickers}
+        for i in self.data_list:
+            if tuple(i)[0]=="insider_trading":
+                if data[tuple(i)] and len(data[tuple(i)])>0:
+                if "Sale" in data[tuple(i)][-1]['transactionType']:
+                    allocation_dict[tuple(i)[1]] = 0
 
-            # Calculate short-term (10 days) and long-term (50 days) SMAs
-            short_sma = SMA(future, data["ohlcv"][future], length=10)
-            long_sma = SMA(future, data["ohlcv"][future], length=50)
-
-            # Implement the trading signal logic
-            if short_sma[-1] > long_sma[-1]:
-                log(f"Going long on {future}")
-                allocation_dict[future] = 0.1  # Allocate 10% to each future we go long on
-            elif short_sma[-1] < long_sma[-1]:
-                log(f"Closing position / staying out on {future}")
-                allocation_dict[future] = 0  # No allocation if the short SMA is below the long SMA
-
-        # Return the target allocation for each future
         return TargetAllocation(allocation_dict)
+This is an interesting strategy that buys QQQ midday if there is a V shape in the last 3 candles:
+
+from surmount.base_class import Strategy, TargetAllocation
+from surmount.technical_indicators import RSI, EMA, SMA, MACD, MFI, BB
+from surmount.logging import log
+
+class TradingStrategy(Strategy):
+
+    @property
+    def assets(self):
+        return ["QQQ"]
+
+    @property
+    def interval(self):
+        return "1hour"
+
+    def run(self, data):
+        d = data["ohlcv"]
+        qqq_stake = 0
+        if len(d)>3 and "13:00" in d[-1]["QQQ"]["date"]:
+            v_shape = d[-2]["QQQ"]["close"]<d[-3]["QQQ"]["close"] and d[-1]["QQQ"]["close"]>d[-2]["QQQ"]["close"]
+            log(str(v_shape))
+            if v_shape:
+                qqq_stake = 1
+
+        return TargetAllocation({"QQQ": qqq_stake})

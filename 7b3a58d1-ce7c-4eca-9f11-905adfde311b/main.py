@@ -65,7 +65,7 @@ class TradingStrategy(Strategy):
             allocation[self.pair_tickers[0]] = 0
             allocation[self.pair_tickers[1]] = 0
         
-        # Logging for debugging purposes
-        log(f"Current spread: {spread[-1]}, Short-term mean: {mean_short}, Long-term mean: {mean_long}")
+    
+        
         
         return TargetAllocation(allocation)

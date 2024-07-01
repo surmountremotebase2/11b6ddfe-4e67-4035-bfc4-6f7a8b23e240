@@ -3,43 +3,40 @@ from surmount.data import InsiderTrading
 
 class TradingStrategy(Strategy):
     def __init__(self):
-        # Initialize with a list of 100 stock tickers
-        self.tickers = ["AAPL", "MSFT", "GOOGL"] # Add more tickers to reach 100
-        # Prepare InsiderTrading data requests for all tickers
-        self.data_list = [InsiderTrading(i) for i in self.tickers]
+        # List of tickers to monitor for insider trading activities
+        self.tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "META"]
+        # Create an InsiderTrading data object for each ticker
+        self.data_list = [InsiderTrading(ticker) for ticker in self.tickers]
 
     @property
     def interval(self):
-        # Define the data interval (daily for this case)
+        # Setting the interval property to daily
         return "1day"
 
     @property
     def assets(self):
-        # Declare which assets are included in this strategy
+        # Specifying the assets that the strategy will consider
         return self.tickers
-
+    
     @property
     def data(self):
-        # Data to be used in the strategy: insider trading data for the tickers
+        # Returning the list of data objects (InsiderTrading)
         return self.data_list
 
     def run(self, data):
-        # Initialize allocation dictionary with zero allocation for each ticker
-        allocation_dict = {i: 0 for i in self.tickers}
-        
-        # Loop through each piece of insider trading data
+        allocation_dict = {}
         for i in self.data_list:
-            data_key = tuple(i)
-            
-            # Check for any insider trading data available
-            if data_key in data and len(data[data_key]) > 0:
-                # Analyze the latest insider transactions for each ticker
-                last_transaction = data[data_key][-1]
-                
-                # Strategy: Avoid stocks with recent insider sales, equally invest in others.
-                # This simplistic logic could be expanded with more nuanced conditions.
-                if "Sale" not in last_transaction['transactionType']:
-                    allocation_dict[data_key[1]] = 1/len([ticker for ticker, transactions in allocation_dict.items() if transactions >= 0])
+            # Checking for the most recent insider trade for each asset
+            recent_trade = data[tuple(i)].pop() if data[tuple(i)] else None
+            if recent_trade:
+                if recent_trade['transactionType'] == "Purchase":
+                    # If the latest insider trade is a purchase, allocate a portion of the portfolio to this stock
+                    allocation_dict[tuple(i)[1]] = 1.0 / len(self.tickers)
+                else:
+                    # If the latest insider trade is not a purchase (e.g., sale), do not allocate any to this stock
+                    allocation_dict[tuple(i)[1]] = 0
+            else:
+                # If there is no recent trade data, set allocation to zero
+                allocation_dict[tuple(i)[1]] = 0
 
-        # Return target allocation based on the strategy logic
         return TargetAllocation(allocation_dict)

@@ -1,45 +1,38 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import SMA
+from surmount.technical_indicators import MACD
 from surmount.logging import log
 
 class TradingStrategy(Strategy):
-    
-    def __init__(self):
-        self.short_ma_period = 20  # Short-term moving average period
-        self.long_ma_period = 50   # Long-term moving average period
-        self.asset = "AAPL"
-
     @property
     def assets(self):
-        return [self.asset]
-    
+        # We're interested in tracking the SPY as a proxy for S&P 500 performance
+        return ["SPY"]
+
     @property
     def interval(self):
-        return "1day"  # Use daily intervals for moving average calculation
+        # Daily intervals to analyze the broader trend
+        return "1day"
 
     def run(self, data):
-        # Calculate short-term and long-term moving averages for the asset
-        short_ma = SMA(self.asset, data["ohlcv"], self.short_ma_period)
-        long_ma = SMA(self.asset, data["ohlcv"], self.long_ma_period)
+        # Initialize SPXS stake to 0; we only want to hold it under certain conditions
+        spxs_stake = 0
+        # Analyze SPY data to get MACD indicators
+        spy_macd = MACD("SPY", data["ohlcv"], fast=12, slow=26)
         
-        if not short_ma or not long_ma or len(short_ma) < self.short_ma_period or len(long_ma) < self.long_ma_period:
-            log("Insufficient data for calculating MAs.")
-            return TargetAllocation({self.asset: 0})  # Cannot calculate MAs, so do not allocate
-        
-        latest_short_ma = short_ma[-1]
-        latest_long_ma = long_ma[-1]
-        
-        # Initiate a buy signal (allocate 100% to AAPL) if the short-term MA crosses above the long-term MA
-        if latest_short_ma > latest_long_ma:
-            log(f"Buying signal: Short-term MA ({latest_short_ma}) crossed above Long-term MA ({latest_long_ma})")
-            return TargetAllocation({self.asset: 1})  # Allocate 100% to AAPL
-        
-        # Initiate a sell signal (reduce allocation to 0%) if the short-term MA crosses below the long-term MA
-        elif latest_short_ma < latest_long_ma:
-            log(f"Selling signal: Short-term MA ({latest_short_ma}) crossed below Long-term MA ({latest_long_ma})")
-            return TargetAllocation({self.asset: 0})  # Allocate 0% to AAPL
-        
-        # If MAs have not crossed, maintain current allocation
+        if spy_macd is not None:
+            # Get MACD and Signal line lists
+            macd_line, signal_line = spy_macd["MACD"], spy_macd["signal"]
+            # If the MACD line crosses above the signal line, it's a bullish signal for the SPY
+            # This means we expect SPXS to drop, presenting a short opportunity
+            if len(macd_line) > 1 and len(signal_line) > 1:
+                if macd_line[-2] < signal_line[-2] and macd_line[-1] > signal_line[-1]:
+                    log("Bullish MACD crossover for SPY. Considering short position in SPXS.")
+                    # Aggressive short; adjust magnitude according to strategy risk preference
+                    spxs_stake = 1  # 1 indicates a full allocation according to strategy. This could be adjusted for leverage.
+                else:
+                    log("No bullish crossover signal. Avoiding SPXS position.")
         else:
-            log("No MA crossover detected; maintaining current allocation.")
-            return TargetAllocation({self.asset: 0.5})  # Example fallback, this can be dynamic based on your strategy logic
+            log("Unable to calculate MACD for SPY.")
+
+        # Utilizing the TargetAllocation structure to indicate our position decision
+        return TargetAllocation({"SPXS": spxs_stake})

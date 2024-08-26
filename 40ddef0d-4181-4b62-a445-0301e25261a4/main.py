@@ -1,38 +1,48 @@
 from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import MACD
+from surmount.technical_indicators import RSI, SMA
 from surmount.logging import log
 
 class TradingStrategy(Strategy):
-    @property
-    def assets(self):
-        # We're interested in tracking the SPY as a proxy for S&P 500 performance
-        return ["SPY"]
-
+    def __init__(self):
+        # We focus solely on SPXS, the inverse S&P 500 leveraged ETF
+        self.tickers = ["SPXS"]
+    
     @property
     def interval(self):
-        # Daily intervals to analyze the broader trend
+        # Daily data to analyze the market trend
         return "1day"
-
+    
+    @property
+    def assets(self):
+        # Only trading on SPXS
+        return self.tickers
+    
     def run(self, data):
-        # Initialize SPXS stake to 0; we only want to hold it under certain conditions
-        spxs_stake = 0
-        # Analyze SPY data to get MACD indicators
-        spy_macd = MACD("SPY", data["ohlcv"], fast=12, slow=26)
+        # Initialize allocation with no investment
+        allocation_dict = {"SPXS": 0.0}
         
-        if spy_macd is not None:
-            # Get MACD and Signal line lists
-            macd_line, signal_line = spy_macd["MACD"], spy_macd["signal"]
-            # If the MACD line crosses above the signal line, it's a bullish signal for the SPY
-            # This means we expect SPXS to drop, presenting a short opportunity
-            if len(macd_line) > 1 and len(signal_line) > 1:
-                if macd_line[-2] < signal_line[-2] and macd_line[-1] > signal_line[-1]:
-                    log("Bullish MACD crossover for SPY. Considering short position in SPXS.")
-                    # Aggressive short; adjust magnitude according to strategy risk preference
-                    spxs_stake = 1  # 1 indicates a full allocation according to strategy. This could be adjusted for leverage.
-                else:
-                    log("No bullish crossover signal. Avoiding SPXS position.")
-        else:
-            log("Unable to calculate MACD for SPY.")
-
-        # Utilizing the TargetAllocation structure to indicate our position decision
-        return TargetAllocation({"SPXS": spxs_stake})
+        d = data["ohlcv"]
+        
+        if len(d) > 14:  # Ensuring we have enough data for analysis
+            # Calculate the 14-day RSI for SPXS
+            rsi_values = RSI("SPXS", d, 14)
+            # Calculate the 50-day simple moving average for SPXS
+            sma_values = SMA("SPXS", d, 50)
+            
+            current_price = d[-1]["SPXS"]["close"]
+            rsi_current = rsi_values[-1]
+            sma_current = sma_values[-1]
+            
+            # Decision logic:
+            # If the RSI is above 70, it's often considered overbought - however, as this is an inverse ETF, 
+            # an overbought condition might actually signal a strong bearish sentiment for the S&P 500,
+            # warranting an aggressive position.
+            # We also check if the current price is below the 50-day SMA as a confirmation.
+            if rsi_current > 70 and current_price < sma_current:
+                log("Aggressively buying SPXS as it is overbought but below the SMA, indicating a bearish sentiment.")
+                allocation_dict["SPXS"] = 1.0  # Putting 100% of our portfolio into SPXS
+            
+            # Note: This is a highly aggressive and risky strategy suitable for short time frames.
+            # Always backtest strategies like these with historical data to understand potential performance and risk.
+        
+        return TargetAllocation(allocation_dict)
